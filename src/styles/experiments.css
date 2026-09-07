@@ -1,0 +1,229 @@
+@layer pages {
+  .experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .experiment-card,
+  .experiment-section {
+    min-width: 0;
+    padding: 24px;
+    overflow-wrap: anywhere;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .experiment-card {
+    display: grid;
+    gap: 17px;
+  }
+  .experiment-card.is-highlighted {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgb(23 106 203 / 10%);
+  }
+  .experiment-card header,
+  .experiment-card footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .experiment-card h2 {
+    font-size: 19px;
+    line-height: 1.45;
+  }
+  .experiment-card h2 a:hover {
+    color: var(--accent);
+  }
+  .experiment-card > p {
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+  .experiment-reference {
+    padding: 14px;
+    background: var(--surface-muted);
+    border-radius: 10px;
+  }
+  .experiment-card__scores {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px;
+    color: var(--ink-3);
+    background: var(--accent-pale);
+    border-radius: 12px;
+    font-size: 12px;
+  }
+  .experiment-card__scores span {
+    display: grid;
+    gap: 2px;
+  }
+  .experiment-card__scores strong {
+    color: var(--ink);
+    font-size: 23px;
+  }
+  .experiment-room {
+    width: 100%;
+    max-width: 1060px;
+    margin: 0 auto;
+  }
+  .experiment-room__heading {
+    display: grid;
+    gap: 9px;
+  }
+  .experiment-room__heading h1 {
+    font-size: clamp(26px, 4vw, 36px);
+    line-height: 1.35;
+  }
+  .experiment-room__heading > p {
+    max-width: 780px;
+    color: var(--ink-3);
+  }
+  .experiment-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    list-style: none;
+  }
+  .experiment-steps li {
+    padding: 12px 15px;
+    color: var(--ink-3);
+    background: var(--surface-muted);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .experiment-steps li.done {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .experiment-section {
+    display: grid;
+    gap: 18px;
+  }
+  .experiment-section h2 {
+    font-size: 21px;
+  }
+  .experiment-conditions {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+    color: var(--ink-3);
+    background: var(--accent-pale);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 12px;
+  }
+  .experiment-conditions strong {
+    color: var(--ink);
+  }
+  .experiment-periods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+  }
+  .experiment-comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .experiment-comparison > div {
+    min-width: 0;
+  }
+  .experiment-tally {
+    display: grid;
+    gap: 4px;
+    padding: 20px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+  }
+  .experiment-tally > span {
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .experiment-tally > strong {
+    color: var(--accent);
+    font-size: 36px;
+    line-height: 1.2;
+  }
+  .experiment-tally p,
+  .experiment-tally small {
+    color: var(--ink-3);
+  }
+  .experiment-runs {
+    margin-top: 10px;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .experiment-runs summary {
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .experiment-run-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .experiment-run-row span {
+    display: grid;
+    min-width: 0;
+  }
+  .experiment-run-row small {
+    color: var(--ink-4);
+  }
+  .experiment-history {
+    display: grid;
+    gap: 12px;
+  }
+  .experiment-history article {
+    display: grid;
+    gap: 8px;
+    padding: 17px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+  }
+  .experiment-history article > span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .experiment-history article > p {
+    color: var(--ink-3);
+  }
+}
+@layer responsive {
+  @media (max-width: 1000px) {
+    .experiment-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 700px) {
+    .experiment-card,
+    .experiment-section {
+      padding: 18px;
+    }
+    .experiment-steps,
+    .experiment-periods,
+    .experiment-comparison {
+      grid-template-columns: 1fr;
+    }
+    .experiment-card__scores {
+      align-items: flex-start;
+    }
+    .experiment-run-row {
+      align-items: flex-start;
+    }
+  }
+}

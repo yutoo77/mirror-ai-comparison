@@ -1,0 +1,184 @@
+@layer pages {
+  .help-page {
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+  .help-page__header {
+    padding-block: 4px 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .help-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+  .help-back:hover {
+    color: var(--accent);
+  }
+  .help-page__header h1 {
+    margin-top: 16px;
+    font-size: 28px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+  }
+  .help-page__header p {
+    margin-top: 10px;
+    color: var(--ink-3);
+    font-size: 14px;
+  }
+  .help-layout {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+  .help-toc {
+    display: grid;
+    position: sticky;
+    top: calc(var(--topbar-height) + 20px);
+    gap: 4px;
+    padding-top: 26px;
+  }
+  .help-toc a {
+    padding: 9px 10px;
+    color: var(--ink-3);
+    border-radius: 5px;
+    font-size: 13px;
+  }
+  .help-toc a:hover,
+  .help-toc a:focus-visible {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .help-toc .help-toc__return {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .help-content {
+    min-width: 0;
+  }
+  .help-content section {
+    padding-block: 32px;
+    scroll-margin-top: calc(var(--topbar-height) + 22px);
+    border-bottom: 1px solid var(--line);
+  }
+  .help-content section:last-child {
+    border-bottom: 0;
+  }
+  .help-content section:focus:not(:focus-visible) {
+    outline: none;
+  }
+  .help-content h2 {
+    margin-bottom: 18px;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  .help-content h3 {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .help-content p,
+  .help-content dd,
+  .help-list {
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.9;
+    overflow-wrap: anywhere;
+  }
+  .help-steps {
+    display: grid;
+    gap: 21px;
+    padding-left: 24px;
+  }
+  .help-steps li {
+    padding-left: 7px;
+  }
+  .help-steps li::marker {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .help-steps p {
+    margin-top: 5px;
+  }
+  .help-content .help-note {
+    margin-top: 24px;
+    padding: 13px 16px;
+    border-left: 3px solid var(--line-strong);
+    background: var(--surface);
+  }
+  .help-definitions {
+    display: grid;
+    margin-top: 20px;
+    gap: 18px;
+  }
+  .help-definitions dt {
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .help-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 42px;
+    margin-top: 18px;
+    gap: 6px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .help-action:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .help-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+    padding-left: 22px;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 1100px) {
+    .help-layout {
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 25px;
+    }
+  }
+  @media (max-width: 680px) {
+    .help-layout {
+      display: block;
+    }
+    .help-page__header {
+      padding-bottom: 22px;
+    }
+    .help-page__header h1 {
+      font-size: 24px;
+    }
+    .help-toc {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px 8px;
+      padding-block: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .help-toc a {
+      padding: 9px 3px;
+      font-size: 12px;
+      text-decoration: underline;
+      text-underline-offset: 5px;
+    }
+    .help-content section {
+      padding-block: 26px;
+    }
+  }
+}

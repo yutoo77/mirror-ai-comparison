@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+.release/
+*.zip
+*.tar.gz
+*.pem
+*.key
+*.p12
