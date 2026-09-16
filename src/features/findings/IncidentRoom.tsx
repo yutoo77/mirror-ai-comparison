@@ -119,24 +119,8 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
         </div>
         <h2>{finding.title}</h2>
         <p>{finding.summary}</p>
-        <ol className="incident-steps" aria-label="調査の流れ">
-          <li className="is-complete">
-            <span>01</span>検出
-          </li>
-          <li className="is-current">
-            <span>02</span>証拠を確認
-          </li>
-          <li
-            className={
-              finding.reviewStatus !== 'unreviewed' ? 'is-complete' : ''
-            }
-          >
-            <span>03</span>判断を記録
-          </li>
-          <li className={linkedAction?.after ? 'is-complete' : ''}>
-            <span>04</span>改善を検証
-          </li>
-        </ol>
+        <details className="incident-help">
+          <summary>集計と算出方法</summary>
         <dl className="finding-detail__stats">
           <div>
             <dt>この問題の検出率</dt>
@@ -168,12 +152,12 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
         <p className="incident-method">
           対象Claimの保存Runを、この問題の種類だけで再集計。保存済みの判定を使い、新しいAI評価は行いません。期間・質問・観測方法が異なる回答も含む記述的な集計です。
         </p>
+        </details>
       </header>
       <section className="detail-section">
         <div className="detail-section__title">
           <div>
-            <span className="eyebrow">01 / EVIDENCE</span>
-            <h3>公式情報と、選んだ回答を比べる</h3>
+            <h3>証拠を比較</h3>
           </div>
           {selected ? (
             <Badge
@@ -187,7 +171,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
           <article className="evidence-card evidence-card--official">
             <header>
               <FileCheck2 aria-hidden="true" size={18} />
-              <span>Findingに保存された公式情報</span>
+              <span>保存時の公式情報</span>
             </header>
             <blockquote>{official.statement}</blockquote>
             <div className="evidence-excerpt">
@@ -215,7 +199,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
             <header>
               <Bot aria-hidden="true" size={18} />
               <span>
-                {selected ? '選択した回答の記録' : 'Findingに保存された抜粋'}
+                {selected ? 'AIの回答' : '保存された抜粋'}
               </span>
             </header>
             <p className="section-note">
@@ -266,9 +250,10 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
             </footer>
           </article>
         </div>
-        <p className="section-note">
-          左右はそれぞれ保存された記録です。公式情報の取得時点と回答時点が異なる場合があります。非検出は回答全体の正しさを意味しません。
-        </p>
+        <details className="incident-help">
+          <summary>証拠の見方</summary>
+          <p>左右はそれぞれ保存された記録です。公式情報の取得時点と回答時点が異なる場合があります。非検出は回答全体の正しさを意味しません。</p>
+        </details>
         {finding.kind === 'outdated' ? (
           <p className="incident-caution">
             「古い情報」は現在の評価項目だけでは再判定できません。保存された証拠と日時を、人間が確認してください。
@@ -278,8 +263,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
       <section className="detail-section incident-history">
         <div className="detail-section__title">
           <div>
-            <span className="eyebrow">02 / OBSERVATIONS</span>
-            <h3>回答を切り替えて、広がりを確かめる</h3>
+            <h3>関連する回答</h3>
           </div>
           <History size={20} aria-hidden="true" />
         </div>
@@ -326,7 +310,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
             onClick={() => setShowAllRuns(!showAllRuns)}
           >
             {showAllRuns
-              ? '直近6件と選択中の回答だけ表示'
+              ? '閉じる'
               : `全${incident.observations.length}件を表示`}
           </button>
         ) : null}
@@ -355,8 +339,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
       <section className="detail-section incident-review">
         <div className="detail-section__title">
           <div>
-            <span className="eyebrow">03 / HUMAN REVIEW</span>
-            <h3>判断と、その理由を残す</h3>
+            <h3>判断を記録</h3>
           </div>
           <Badge>{reviewLabels[finding.reviewStatus]}</Badge>
         </div>
@@ -385,7 +368,7 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
               value={note}
               maxLength={2000}
               rows={3}
-              placeholder="どの原文・回答を見て、なぜそう判断したか。次に確かめたいことも残せます。"
+              placeholder="参照した証拠と判断の理由"
               onChange={(event) => {
                 setNote(event.target.value);
                 setFeedback('');
@@ -448,26 +431,12 @@ export function IncidentRoom({ finding }: { finding: Finding }) {
               </li>
             ))}
           </ol>
-        ) : (
-          <p className="section-note">
-            理由付きの履歴はまだありません。既存のデモの確認状態には、後付けの理由を生成しません。
-          </p>
-        )}
+        ) : null}
       </section>
       <footer className="finding-detail__footer">
-        <div>
-          <span className="eyebrow">04 / NEXT STEP</span>
-          <strong>
-            {linkedAction
-              ? '改善仮説を確認して、次の検証へ'
-              : canCreate
-                ? 'この判断を、改善の仮説へ'
-                : '改善対象と確認し、判定可能な回答を揃える'}
-          </strong>
-          <p className="section-note">
-            改善案は下書きです。自動で公開・配信することはありません。
-          </p>
-        </div>
+        {!linkedAction && !canCreate ? (
+          <p className="section-note">改善対象と確認し、判定可能な回答を揃えてください。</p>
+        ) : null}
         <button
           type="button"
           className="button button--primary"

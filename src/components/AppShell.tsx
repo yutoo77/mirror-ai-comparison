@@ -14,11 +14,12 @@ import {
   Plus,
   RotateCcw,
   ShieldCheck,
+  Settings2,
+  ChartNoAxesCombined,
   X,
 } from 'lucide-react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useWorkspace } from '../app/workspaceContext';
-import { formatDate } from '../domain/metrics';
 import { MeasurementDialog } from './MeasurementDialog';
 import { ManualObservationDialog } from './ManualObservationDialog';
 import { OnboardingDialog } from './OnboardingDialog';
@@ -132,7 +133,6 @@ export function AppShell() {
           </span>
           <div>
             <strong>Mirror</strong>
-              <small>回答と根拠を見比べる</small>
           </div>
           <button
             className="icon-button mobile-menu-close"
@@ -210,46 +210,47 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar__spacer" />
-        <div className="data-boundary">
-          <span>
-            <CircleDot aria-hidden="true" size={14} />{' '}
-            {active.workspace.isDemo ? '架空のデモデータ' : 'ローカルWorkspace'}
-          </span>
-          <p>このブラウザに保存 · 自動同期なし</p>
-        </div>
         <div className="sidebar-footer">
           <NavLink
             to="/help"
             onClick={() => setMobileMenuOpen(false)}
             className={({ isActive }) => (isActive ? 'is-active' : '')}
+            aria-label="使い方と判定について"
           >
             <CircleHelp size={16} aria-hidden="true" />
-            使い方と判定について
+            使い方
           </NavLink>
-          <button
-            type="button"
-            onClick={() => {
-              closeMenuForDialog();
-              setBackupOpen(true);
-            }}
-          >
-            <Archive size={16} aria-hidden="true" />
-            バックアップと復元
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              closeMenuForDialog();
-              setPackOpen(true);
-            }}
-          >
-            <ShieldCheck aria-hidden="true" size={16} />
-            監査パックを検証
-          </button>
-          <button type="button" onClick={resetDemo}>
-            <RotateCcw aria-hidden="true" size={16} />
-            デモデータを復元
-          </button>
+          <details className="workspace-tools">
+            <summary><Settings2 size={16} aria-hidden="true" />データ管理</summary>
+            <NavLink to="/overview" onClick={() => setMobileMenuOpen(false)}>
+              <ChartNoAxesCombined size={16} aria-hidden="true" />全体の指標
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => {
+                closeMenuForDialog();
+                setBackupOpen(true);
+              }}
+            >
+              <Archive size={16} aria-hidden="true" />
+              バックアップと復元
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeMenuForDialog();
+                setPackOpen(true);
+              }}
+            >
+              <ShieldCheck aria-hidden="true" size={16} />
+              監査パックを検証
+            </button>
+            <button type="button" onClick={resetDemo}>
+              <RotateCcw aria-hidden="true" size={16} />
+              デモデータを復元
+            </button>
+            <p className="data-boundary">このブラウザに保存 · 自動同期なし</p>
+          </details>
         </div>
       </aside>
 
@@ -280,16 +281,15 @@ export function AppShell() {
             <div>
               <span className="topbar__page">{pageName}</span>
               <span className="topbar__context">
-                {active.workspace.subject.displayName} · 最終観測{' '}
-                {formatDate(active.workspace.lastMeasuredAt)}
+                {active.workspace.subject.displayName}
               </span>
             </div>
           </div>
           <div className="topbar__actions">
             {active.workspace.isDemo ? (
-              <span className="demo-label">デモ</span>
+              <span className="demo-label">架空デモ</span>
             ) : null}
-            <button
+            {basePath === '/observe' ? <button
               className="button button--secondary button--compact"
               type="button"
               onClick={() => setRunOpen(true)}
@@ -300,7 +300,7 @@ export function AppShell() {
             >
               <Play aria-hidden="true" size={16} />
               観測を開始
-            </button>
+            </button> : null}
           </div>
         </header>
 

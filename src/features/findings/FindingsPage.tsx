@@ -52,44 +52,7 @@ export function FindingsPage() {
     <div
       className={`page-stack findings-page ${findingId ? 'findings-page--detail' : ''}`}
     >
-      <PageIntro
-        eyebrow="INCIDENT ROOM"
-        title="誤解を、証拠から解きほぐす"
-        description="気になるズレを選び、元回答をたどり、判断を残す。調査から改善までを、この場所で。"
-      />
-      <div className="incident-queue-summary" aria-label="調査状況">
-        <div>
-          <span>未確認</span>
-          <strong>
-            {
-              active.findings.filter(
-                (item) => item.reviewStatus === 'unreviewed',
-              ).length
-            }
-          </strong>
-        </div>
-        <div>
-          <span>根拠待ち</span>
-          <strong>
-            {
-              active.findings.filter(
-                (item) => item.reviewStatus === 'needs-evidence',
-              ).length
-            }
-          </strong>
-        </div>
-        <div>
-          <span>改善対象</span>
-          <strong>
-            {
-              active.findings.filter(
-                (item) => item.reviewStatus === 'confirmed',
-              ).length
-            }
-          </strong>
-        </div>
-        <p>結論だけでなく、そこへ至った証拠も残す。</p>
-      </div>
+      <PageIntro title="発見" />
       <div
         className={`findings-workspace ${findingId ? 'has-route-selection' : ''}`}
       >
@@ -101,7 +64,7 @@ export function FindingsPage() {
                 aria-label="Findingを検索"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Findingを検索"
+                placeholder="検索"
               />
             </label>
             <div className="filter-row">
@@ -138,7 +101,7 @@ export function FindingsPage() {
             </div>
           </div>
           <div className="findings-list-panel__count" aria-live="polite">
-            {filtered.length} findings · 重大度順
+            {filtered.length}件 · 重大度順
           </div>
           <div className="finding-list finding-list--full">
             {filtered.map((finding) => (

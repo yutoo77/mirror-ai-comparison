@@ -145,6 +145,14 @@ export function SourceDetailDialog({ source, initialClaimId, onClose }: {
                         <div className="source-review-item"><Badge tone={claim.status === 'verified' ? 'success' : 'warning'}>{claim.status === 'verified' ? '人が確認済み' : claim.status === 'draft' ? '未確認' : '要再確認'}</Badge><p>{claim.statement}</p></div>
                         <button type="button" className="text-link" onClick={() => setReviewingId(claim.id)}>{claim.status === 'verified' ? '確認内容を見直す' : '原文と照らして確認'}</button>
                       </>}
+                      <details className="source-claim-record">
+                        <summary>確認記録</summary>
+                        <dl>
+                          <div><dt>分類</dt><dd>{claim.category}</dd></div>
+                          <div><dt>担当</dt><dd>{claim.owner}</dd></div>
+                          <div><dt>最終確認</dt><dd><time dateTime={claim.reviewedAt}>{dateLabel(claim.reviewedAt)}</time></dd></div>
+                        </dl>
+                      </details>
                     </article>
                   ))}
                   {!impact.claims.length ? <p className="section-note">この資料の確認項目はまだありません。</p> : null}

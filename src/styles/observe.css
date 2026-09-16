@@ -1,0 +1,161 @@
+.observe-page .probe-grid {
+  grid-template-columns: 1fr;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.observe-page .probe-card {
+  padding: 20px 24px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.observe-page .probe-card + .probe-card {
+  border-top: 1px solid var(--line);
+}
+
+.observe-page .probe-card > header {
+  font-size: 12px;
+}
+
+.observe-page .probe-card h2 {
+  min-height: 0;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+.observe-page .probe-card > footer {
+  margin-top: 14px;
+  padding-top: 0;
+  border: 0;
+}
+
+.observe-page .probe-empty,
+.observe-page .probe-settings {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.observe-page .probe-settings {
+  margin-top: 16px;
+}
+
+.observe-page .probe-settings summary,
+.overview-page .overview-definitions summary,
+.overview-page .overview-activity summary {
+  width: fit-content;
+  padding: 5px 0;
+  cursor: pointer;
+}
+
+.observe-page .probe-settings .probe-context {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.observe-page .probe-settings dl {
+  max-width: 520px;
+  margin-top: 12px;
+}
+
+.observe-page .probe-settings dt {
+  font-size: 12px;
+}
+
+.observe-page .probe-settings__result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.observe-page .probe-card time {
+  font-size: 12px;
+}
+
+.observe-page .campaign-card__content {
+  grid-template-columns: minmax(170px, 1fr) minmax(180px, 1fr) auto;
+}
+
+.observe-page .campaign-card > header span,
+.observe-page .campaign-card > header time {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.observe-page .campaign-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.observe-page .campaign-result > strong {
+  width: 100%;
+  font-size: 16px;
+}
+
+.observe-page .campaign-result > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.observe-page .campaign-result .has-warning {
+  color: var(--warning);
+}
+
+.overview-page .metric-card {
+  min-height: 112px;
+}
+
+.overview-page .overview-definitions {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.overview-page .overview-definitions dl {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.overview-page .overview-definitions dt {
+  margin-bottom: 4px;
+  color: var(--ink-2);
+  font-weight: 650;
+}
+
+.overview-page .overview-definitions p {
+  margin-top: 14px;
+}
+
+.overview-page .overview-activity summary {
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.overview-page .overview-activity[open] .activity-list {
+  margin-top: 16px;
+}
+
+@media (max-width: 680px) {
+  .observe-page .probe-card {
+    padding: 18px;
+  }
+
+  .observe-page .probe-card > footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .observe-page .campaign-card__content {
+    grid-template-columns: 1fr;
+  }
+}

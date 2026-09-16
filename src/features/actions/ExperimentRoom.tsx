@@ -297,18 +297,12 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
         改善一覧へ
       </Link>
       <header className="experiment-room__heading">
-        <span className="eyebrow">EXPERIMENT WORKSPACE</span>
         <h1>{action.title}</h1>
-        <p>{action.hypothesis}</p>
+        {plan ? <p>{action.hypothesis}</p> : null}
         <Link className="text-link" to={`/findings/${finding.id}`}>
-          関連Findingを確認 <ArrowRight size={15} />
+          元の発見 <ArrowRight size={15} />
         </Link>
       </header>
-      <ol className="experiment-steps">
-        <li className="done">1 仮説を整える</li>
-        <li className={plan ? 'done' : ''}>2 条件を固定する</li>
-        <li className={latest ? 'done' : ''}>3 結果を記録する</li>
-      </ol>
       {message ? (
         <div className="notice notice--info" role="status">
           <p>{message}</p>
@@ -317,11 +311,7 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
       {!plan ? (
         <>
           <section className="experiment-section">
-            <span className="eyebrow">HYPOTHESIS</span>
-            <h2>改善案を整える</h2>
-            <p className="form-lead">
-              比較条件を固定するまでは編集できます。先に保存してください。
-            </p>
+            <h2>改善案</h2>
             <form
               className="form-stack"
               onSubmit={saveBrief}
@@ -391,7 +381,6 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
             </form>
           </section>
           <section className="experiment-section">
-            <span className="eyebrow">MEASUREMENT PLAN</span>
             <h2>比較条件を固定する</h2>
             {finding.reviewStatus !== 'confirmed' ? (
               <div className="notice notice--neutral">
@@ -519,9 +508,10 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
                     仮説に未保存の変更があります。先に「仮説を保存」を押してください。
                   </p>
                 ) : null}
-                <p className="section-note">
-                  これは事前登録を証明する機能ではありません。回答取得設定のうち保存していないパラメータは比較できません。
-                </p>
+                <details className="experiment-help">
+                  <summary>比較の制約</summary>
+                  <p>これは事前登録を証明する機能ではありません。回答取得設定のうち保存していないパラメータは比較できません。</p>
+                </details>
               </form>
             )}
           </section>
@@ -529,7 +519,6 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
       ) : (
         <>
           <section className="experiment-section">
-            <span className="eyebrow">LOCKED CONDITIONS</span>
             <h2>固定した比較条件</h2>
             <CapturedConditions cohort={plan.cohort} />
             <div className="experiment-conditions">
@@ -546,13 +535,13 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
                 {showTime(plan.followupWindow.endAt)}
               </span>
             </div>
-            <p className="section-note">
-              同条件の前後差として記録します。因果関係や統計的有意性を示すものではありません。
-            </p>
+            <details className="experiment-help">
+              <summary>比較結果の見方</summary>
+              <p>同条件の前後差として記録します。因果関係や統計的有意性を示すものではありません。</p>
+            </details>
           </section>
           <section className="experiment-section">
-            <span className="eyebrow">COMPARISON</span>
-            <h2>回答に基づく比較</h2>
+            <h2>変更前後の比較</h2>
             <div className="experiment-comparison">
               <div>
                 <TallyCard title="固定した変更前" tally={plan.baseline} />
@@ -578,8 +567,7 @@ export function ExperimentRoom({ action }: { action: ActionExperiment }) {
             </Link>
           </section>
           <section className="experiment-section">
-            <span className="eyebrow">DECISION LOG</span>
-            <h2>検証メモを残す</h2>
+            <h2>検証メモ</h2>
             <form className="form-stack" onSubmit={evaluate}>
               <label className="field">
                 検証メモ

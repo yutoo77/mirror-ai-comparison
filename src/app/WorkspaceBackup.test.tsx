@@ -33,7 +33,12 @@ function stored() {
     activeWorkspaceId: string;
   };
 }
+async function openDataManagement() {
+  const summary = await screen.findByText('データ管理', { selector: 'summary' });
+  if (!summary.closest('details')?.open) fireEvent.click(summary);
+}
 async function chooseBackup(json: string) {
+  await openDataManagement();
   fireEvent.click(
     await screen.findByRole('button', { name: 'バックアップと復元' }),
   );
@@ -56,6 +61,7 @@ describe('workspace backup and storage protection', () => {
 
   it('prepares a complete backup for explicit download', async () => {
     renderApp();
+    await openDataManagement();
     fireEvent.click(
       await screen.findByRole('button', { name: 'バックアップと復元' }),
     );
@@ -92,6 +98,7 @@ describe('workspace backup and storage protection', () => {
     fireEvent.click(
       screen.getByRole('button', { name: '復元したWorkspaceを開く' }),
     );
+    await openDataManagement();
     fireEvent.click(screen.getByRole('button', { name: 'デモデータを復元' }));
     expect(stored().workspaces).toHaveLength(3);
     expect(
@@ -260,6 +267,7 @@ describe('workspace backup and storage protection', () => {
 
   it('leaves all state untouched after a rejected file', async () => {
     renderApp();
+    await openDataManagement();
     await screen.findByRole('button', { name: 'バックアップと復元' });
     const before = localStorage.getItem(key);
     await chooseBackup('{bad');
@@ -303,10 +311,12 @@ describe('workspace backup and storage protection', () => {
       target: { value: 'https://aster.example/product' },
     });
     fireEvent.click(screen.getByRole('button', { name: '資料を保存' }));
+    await screen.findByRole('heading', { name: '保存対象の公式情報' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /確認項目/ }));
     await screen.findByText(
       '保存前に根拠と対照できる十分な長さの事実を確認します。',
     );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(stored().workspaces[0]!.sources).toHaveLength(
         before.workspaces[0]!.sources.length + 1,
