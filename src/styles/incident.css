@@ -62,7 +62,24 @@
   }
   .finding-card__review-state {
     color: var(--ink-3);
-    font-size: 10px;
+    font-size: 12px;
+  }
+  .incident-help {
+    margin-top: 12px;
+    color: var(--ink-3);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .incident-help summary {
+    width: fit-content;
+    padding-block: 6px;
+    cursor: pointer;
+  }
+  .incident-help > p {
+    margin-top: 8px;
+  }
+  .incident-room .finding-detail__footer {
+    justify-content: flex-end;
   }
   .incident-heading-row {
     display: flex;

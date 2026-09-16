@@ -33,7 +33,12 @@ function stored() {
     activeWorkspaceId: string;
   };
 }
+async function openDataManagement() {
+  const summary = await screen.findByText('データ管理', { selector: 'summary' });
+  if (!summary.closest('details')?.open) fireEvent.click(summary);
+}
 async function chooseBackup(json: string) {
+  await openDataManagement();
   fireEvent.click(
     await screen.findByRole('button', { name: 'バックアップと復元' }),
   );
@@ -56,6 +61,7 @@ describe('workspace backup and storage protection', () => {
 
   it('prepares a complete backup for explicit download', async () => {
     renderApp();
+    await openDataManagement();
     fireEvent.click(
       await screen.findByRole('button', { name: 'バックアップと復元' }),
     );
@@ -85,13 +91,15 @@ describe('workspace backup and storage protection', () => {
     expect(
       await screen.findByText('別のWorkspaceとして復元コピーを追加しました。'),
     ).toBeInTheDocument();
+    // The success message can render before the provider's persistence effect runs.
+    await waitFor(() => expect(stored().workspaces).toHaveLength(3));
     const state = stored();
-    expect(state.workspaces).toHaveLength(3);
     expect(state.workspaces.slice(0, 2)).toEqual(before);
     expect(state.activeWorkspaceId).not.toBe(backup.snapshot.workspace.id);
     fireEvent.click(
       screen.getByRole('button', { name: '復元したWorkspaceを開く' }),
     );
+    await openDataManagement();
     fireEvent.click(screen.getByRole('button', { name: 'デモデータを復元' }));
     expect(stored().workspaces).toHaveLength(3);
     expect(
@@ -103,7 +111,7 @@ describe('workspace backup and storage protection', () => {
     renderApp();
     expect(stored().workspaces).toHaveLength(3);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: '調査対象' }), {
       target: { value: state.activeWorkspaceId },
     });
     expect(stored().activeWorkspaceId).toBe(state.activeWorkspaceId);
@@ -260,6 +268,7 @@ describe('workspace backup and storage protection', () => {
 
   it('leaves all state untouched after a rejected file', async () => {
     renderApp();
+    await openDataManagement();
     await screen.findByRole('button', { name: 'バックアップと復元' });
     const before = localStorage.getItem(key);
     await chooseBackup('{bad');
@@ -303,10 +312,12 @@ describe('workspace backup and storage protection', () => {
       target: { value: 'https://aster.example/product' },
     });
     fireEvent.click(screen.getByRole('button', { name: '資料を保存' }));
+    await screen.findByRole('heading', { name: '保存対象の公式情報' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /確認項目/ }));
     await screen.findByText(
       '保存前に根拠と対照できる十分な長さの事実を確認します。',
     );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(stored().workspaces[0]!.sources).toHaveLength(
         before.workspaces[0]!.sources.length + 1,

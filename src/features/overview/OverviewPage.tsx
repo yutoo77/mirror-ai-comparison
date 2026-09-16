@@ -2,7 +2,6 @@ import {
   ArrowRight,
   BookOpenCheck,
   CalendarClock,
-  CheckCircle2,
   CircleDot,
   FlaskConical,
 } from 'lucide-react';
@@ -22,7 +21,7 @@ import {
   formatShortDate,
 } from '../../domain/metrics';
 import { actionComparison } from '../../domain/experiments';
-import type { RiskLevel } from '../../domain/model';
+import type { ActionStatus, RiskLevel } from '../../domain/model';
 import { FindingCard } from '../findings/FindingCard';
 
 const severityOrder: Record<RiskLevel, number> = {
@@ -30,6 +29,14 @@ const severityOrder: Record<RiskLevel, number> = {
   high: 1,
   medium: 2,
   low: 3,
+};
+
+const actionStatusLabels: Record<ActionStatus, string> = {
+  draft: '下書き',
+  planned: '予定',
+  'in-progress': '対応中',
+  measuring: '計測中',
+  completed: '完了',
 };
 
 export function OverviewPage() {
@@ -56,16 +63,14 @@ export function OverviewPage() {
 
   if (active.sources.length === 0) {
     return (
-      <div className="page-stack">
+      <div className="page-stack overview-page">
         <PageIntro
-          eyebrow="OVERVIEW"
-          title={`${active.workspace.subject.displayName}の基準を作りましょう`}
-          description="最初に公式情報と重要な事実を登録すると、AI回答との比較を始められます。"
+          title="全体の指標"
         />
         <EmptyState
           icon={<BookOpenCheck aria-hidden="true" size={26} />}
           title="まだ公式情報がありません"
-          description="公式ページの抜粋と、そのページが裏付けるClaimを1件追加してください。"
+          description="比較の基準になる情報を追加してください。"
           action={
             <Link className="button button--primary" to="/sources">
               公式情報を追加
@@ -77,51 +82,50 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack overview-page">
       <PageIntro
-        eyebrow="OVERVIEW"
-        title={`${active.workspace.subject.displayName}のAI上の認識`}
-        description="総合点ではなく、いま確認すべき変化と、その根拠を優先して表示します。"
-        actions={
-          <Link className="button button--secondary" to="/findings">
-            すべてのFinding
-            <ArrowRight aria-hidden="true" size={17} />
-          </Link>
-        }
+        title="全体の指標"
       />
 
       <section className="metric-grid" aria-label="主要指標">
         <MetricCard
-          label="対象Claimの言及率"
+          label="言及率"
           value={formatPercent(metrics.claimRecall.ratio)}
-          detail={`${metrics.claimRecall.numerator}/${metrics.claimRecall.denominator} target assessments`}
           tone="accent"
         />
         <MetricCard
           label="事実の正確性"
           value={formatPercent(metrics.factualAccuracy.ratio)}
-          detail="言及されたClaimのうち正確な回答"
         />
         <MetricCard
           label="文章による裏付け"
           value={formatPercent(metrics.evidenceSupport.ratio)}
-          detail="取得済み本文と対応する引用"
         />
         <MetricCard
           label="回答の安定性"
           value={formatPercent(metrics.stability)}
-          detail={`${metrics.runCount} runs · ${providers.size} providers`}
         />
       </section>
 
-      <div className="overview-grid overview-grid--priority">
+      <details className="overview-definitions">
+        <summary>指標の定義と集計範囲</summary>
+        <dl>
+          <div><dt>言及率</dt><dd>質問ごとに指定した確認項目のうち、回答が言及した割合（{metrics.claimRecall.numerator}/{metrics.claimRecall.denominator}）。</dd></div>
+          <div><dt>事実の正確性</dt><dd>言及され、正確さを判定済みの確認項目のうち、正確だった割合。</dd></div>
+          <div><dt>文章による裏付け</dt><dd>言及された確認項目のうち、本文との対応または人による確認がある割合。</dd></div>
+          <div><dt>回答の安定性</dt><dd>同じ質問での言及率のばらつきから算出します。回答が2件以上ある質問が対象です。</dd></div>
+          <div><dt>集計範囲</dt><dd>{active.runs.length} 回答・{active.probes.filter((probe) => probe.status === 'active').length} 質問・{targetedClaims} 確認項目・{providers.size} AI</dd></div>
+        </dl>
+        <p>最終観測 {formatDate(active.workspace.lastMeasuredAt)}</p>
+      </details>
+
+      <div className="overview-priority">
         <section className="panel priority-panel">
           <header className="panel__header">
             <div>
-              <span className="eyebrow">NEEDS ATTENTION</span>
-              <h2>いま確認すべき{priorityFindings.length}件</h2>
+              <h2>要確認 <span className="panel-count">{priorityFindings.length}</span></h2>
             </div>
-            <span className="panel-count">重大度順</span>
+            <Link className="text-link" to="/findings">すべて見る <ArrowRight aria-hidden="true" size={16} /></Link>
           </header>
           <div className="finding-list">
             {priorityFindings.map((finding) => (
@@ -130,67 +134,25 @@ export function OverviewPage() {
           </div>
         </section>
 
-        <aside className="panel measurement-card">
-          <header className="panel__header">
-            <div>
-              <span className="eyebrow">MEASUREMENT SCOPE</span>
-              <h2>この数値の範囲</h2>
-            </div>
-            <CircleDot aria-hidden="true" size={20} />
-          </header>
-          <dl className="measurement-list">
-            <div>
-              <dt>観測回答</dt>
-              <dd>{active.runs.length}</dd>
-            </div>
-            <div>
-              <dt>有効な質問</dt>
-              <dd>
-                {
-                  active.probes.filter((probe) => probe.status === 'active')
-                    .length
-                }
-              </dd>
-            </div>
-            <div>
-              <dt>対象Claim</dt>
-              <dd>{targetedClaims}</dd>
-            </div>
-            <div>
-              <dt>プロバイダー</dt>
-              <dd>{providers.size}</dd>
-            </div>
-          </dl>
-          <div className="measurement-card__note">
-            <CheckCircle2 aria-hidden="true" size={17} />
-            <p>質問ごとに明示したClaimだけを分母にしています。</p>
-          </div>
-          <span className="measurement-card__time">
-            最終観測 {formatDate(active.workspace.lastMeasuredAt)}
-          </span>
-        </aside>
       </div>
 
       <div className="overview-grid">
         <section className="panel trend-panel">
           <header className="panel__header">
             <div>
-              <span className="eyebrow">PERCEPTION TREND</span>
-              <h2>認識指標の推移</h2>
+              <h2>参考推移</h2>
             </div>
-            <span className="panel-count">保存履歴 · 0–100%</span>
           </header>
           <TrendChart data={active.trend} />
           <p className="section-note">
-            保存された参考系列です。サンプルや異なる条件の観測を含むため、期間比較や改善効果を表すものではありません。
+            条件が異なる履歴を含むため、改善効果の比較には使えません。
           </p>
         </section>
 
         <aside className="panel experiment-highlight">
           <header className="panel__header">
             <div>
-              <span className="eyebrow">LATEST EXPERIMENT</span>
-              <h2>改善ループ</h2>
+              <h2>最近の改善</h2>
             </div>
             <FlaskConical aria-hidden="true" size={20} />
           </header>
@@ -199,15 +161,14 @@ export function OverviewPage() {
               <span
                 className={`status-pill status-pill--${topExperiment.status}`}
               >
-                {topExperiment.status}
+                {actionStatusLabels[topExperiment.status]}
               </span>
               <h3>{topExperiment.title}</h3>
-              <p>{topExperiment.hypothesis}</p>
               <div className="experiment-score">
                 <div>
                   <span>
                     {comparison?.recorded
-                      ? '固定した変更前'
+                      ? '変更前'
                       : `${topExperiment.before.label}（参考値）`}
                   </span>
                   <strong>{formatPercent(comparison?.before ?? null)}</strong>
@@ -216,7 +177,7 @@ export function OverviewPage() {
                 <div>
                   <span>
                     {comparison?.recorded
-                      ? '記録済み変更後'
+                      ? '変更後'
                       : '比較条件は未固定'}
                   </span>
                   <strong>{formatPercent(comparison?.after ?? null)}</strong>
@@ -230,20 +191,15 @@ export function OverviewPage() {
                 />
               ) : null}
               <Link className="text-link" to={`/actions/${topExperiment.id}`}>
-                検証ワークスペースへ <ArrowRight aria-hidden="true" size={15} />
+                詳細を見る <ArrowRight aria-hidden="true" size={15} />
               </Link>
             </>
           ) : null}
         </aside>
       </div>
 
-      <section className="panel activity-panel">
-        <header className="panel__header">
-          <div>
-            <span className="eyebrow">RECENT ACTIVITY</span>
-            <h2>直近の変更</h2>
-          </div>
-        </header>
+      <details className="panel activity-panel overview-activity">
+        <summary>直近の変更</summary>
         <div className="activity-list">
           {active.activity.slice(0, 4).map((item) => (
             <article key={item.id}>
@@ -264,7 +220,7 @@ export function OverviewPage() {
             </article>
           ))}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

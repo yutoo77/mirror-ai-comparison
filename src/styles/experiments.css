@@ -1,8 +1,11 @@
 @layer pages {
   .experiment-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
   }
   .experiment-card,
   .experiment-section {
@@ -16,7 +19,32 @@
   }
   .experiment-card {
     display: grid;
-    gap: 17px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 24px;
+    padding: 20px 24px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .experiment-card:last-child {
+    border-bottom: 0;
+  }
+  .experiment-card > header {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+  .experiment-card h2 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .experiment-card footer {
+    grid-column: 1 / -1;
+  }
+  .experiment-card .experiment-card__scores {
+    grid-column: 2;
+    grid-row: 1 / 3;
   }
   .experiment-card.is-highlighted {
     border-color: var(--accent);
@@ -33,7 +61,7 @@
     font-size: 12px;
   }
   .experiment-card h2 {
-    font-size: 19px;
+    font-size: 17px;
     line-height: 1.45;
   }
   .experiment-card h2 a:hover {
@@ -53,10 +81,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    padding: 16px;
+    padding: 0;
     color: var(--ink-3);
-    background: var(--accent-pale);
-    border-radius: 12px;
+    background: transparent;
     font-size: 12px;
   }
   .experiment-card__scores span {
@@ -77,7 +104,7 @@
     gap: 9px;
   }
   .experiment-room__heading h1 {
-    font-size: clamp(26px, 4vw, 36px);
+    font-size: clamp(22px, 3vw, 28px);
     line-height: 1.35;
   }
   .experiment-room__heading > p {
@@ -107,7 +134,21 @@
     gap: 18px;
   }
   .experiment-section h2 {
-    font-size: 21px;
+    font-size: 18px;
+  }
+  .experiment-help {
+    color: var(--ink-3);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .experiment-help summary {
+    width: fit-content;
+    padding-block: 6px;
+    cursor: pointer;
+  }
+  .experiment-help p {
+    max-width: 72ch;
+    margin-top: 8px;
   }
   .experiment-conditions {
     display: grid;
@@ -221,6 +262,14 @@
     }
     .experiment-card__scores {
       align-items: flex-start;
+    }
+    .experiment-card {
+      grid-template-columns: 1fr;
+    }
+    .experiment-card .experiment-card__scores {
+      grid-column: 1;
+      grid-row: auto;
+      justify-content: flex-start;
     }
     .experiment-run-row {
       align-items: flex-start;

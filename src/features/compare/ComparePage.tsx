@@ -1,11 +1,12 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ArrowRight,
   Check,
   Columns3,
   FileSearch,
   Filter,
-  History,
+  CircleHelp,
+  ChevronDown,
   X,
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -121,6 +122,7 @@ export function ComparePage() {
 
 function ComparisonWorkspace() {
   const { active } = useWorkspace();
+  const pickerSummaryRef = useRef<HTMLElement>(null);
   const [search, setSearch] = useSearchParams();
   const helpState = {
     returnTo: search.toString() ? `/?${search.toString()}` : '/',
@@ -153,6 +155,12 @@ function ComparisonWorkspace() {
       : defaultAnswers(available);
   const comparison = buildComparison(active, { probeId, runIds: requestedIds });
   const selectedIds = comparison.runs.map(({ run }) => run.id);
+  const showAnswerOrigins = new Set(comparison.runs.map(({ run }) => run.provenance.origin)).size > 1
+    || (!active.workspace.isDemo && comparison.runs.some(({ run }) => run.provenance.origin === 'demo'));
+  const answerIdentity = (run: ProbeRun) =>
+    comparison.runs.filter((entry) => entry.run.provider === run.provider).length > 1
+      ? `回答 ${selectedIds.indexOf(run.id) + 1} · ${run.model} · ${dateLabel(run.executedAt)}`
+      : null;
   const conditionsDiffer =
     new Set(
       comparison.runs.map(({ run, question }) =>
@@ -186,259 +194,117 @@ function ComparisonWorkspace() {
   return (
     <div className="page-stack compare-page">
       <header className="compare-title">
-        <h1>{active.workspace.subject.displayName}のAI認識を比べる</h1>
-        <div className="compare-title__links">
-          <Link className="text-link" to="/overview">
-            <History size={16} aria-hidden="true" />
-            全体の指標
-          </Link>
-          <Link className="text-link" to="/help#comparison" state={helpState}>
-            比較の使い方
-          </Link>
+        <div>
+          <h1>AIの回答を比較</h1>
+          <p className="compare-title__subject">{active.workspace.subject.displayName}</p>
         </div>
+        <Link className="icon-button" to="/help#comparison" state={helpState} aria-label="比較の使い方">
+          <CircleHelp size={20} aria-hidden="true" />
+        </Link>
       </header>
       {!active.probes.length ? (
         <EmptyState
           icon={<Columns3 size={26} aria-hidden="true" />}
-          title="最初の比較を始めましょう"
-          description="公式情報と確認したい事実を登録し、質問を作ると回答を比較できます。"
-          action={
-            <Link
-              className="button button--primary"
-              to={
-                active.claims.some((claim) => claim.status === 'verified')
-                  ? '/observe'
-                  : '/sources'
-              }
-            >
-              調査の準備へ
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          }
+          title="質問がありません"
+          description="公式情報を登録して、質問を追加してください。"
+          action={<Link className="button button--primary" to={active.claims.some((claim) => claim.status === 'verified') ? '/observe' : '/sources'}>調査の準備へ<ArrowRight size={16} aria-hidden="true" /></Link>}
         />
       ) : (
         <>
           <section className="compare-scope" aria-label="比較の範囲">
-            <label className="field compare-scope__select">
-              比較する質問
-              <select
-                value={comparison.probe?.id ?? ''}
-                onChange={(event) => {
-                  setSearch({ probe: event.target.value });
-                  setInspected(null);
-                  setAttentionOnly(false);
-                }}
-              >
-                <option value="" disabled>
-                  質問を選択
-                </option>
-                {active.probes.map((probe) => (
-                  <option key={probe.id} value={probe.id}>
-                    {probe.question}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {comparison.probe ? (
-              <p className="compare-scope__question">
-                {comparison.probe.question}
-              </p>
-            ) : null}
-            {comparison.probe ? (
-              <div className="compare-scope__context">
-                <span>{available.length}件の保存回答</span>
-                <Link className="text-link" to="/observe?tab=runs">
-                  回答を追加
-                  <ArrowRight size={14} aria-hidden="true" />
-                </Link>
-              </div>
-            ) : (
-              <p className="form-error" role="alert">
-                このWorkspaceに対応する質問がありません。質問を選び直してください。
-              </p>
-            )}
+            <details className="compare-question-details">
+              <summary>
+                <span>質問</span>
+                <strong>{comparison.probe?.question ?? '質問を選んでください'}</strong>
+                <ChevronDown size={18} aria-hidden="true" />
+              </summary>
+              <label className="field compare-scope__select">
+                比較する質問
+                <select
+                  value={comparison.probe?.id ?? ''}
+                  onChange={(event) => {
+                    setSearch({ probe: event.target.value });
+                    setInspected(null);
+                    setAttentionOnly(false);
+                  }}
+                >
+                  <option value="" disabled>質問を選択</option>
+                  {active.probes.map((probe) => <option key={probe.id} value={probe.id}>{probe.question}</option>)}
+                </select>
+              </label>
+            </details>
+            {!comparison.probe ? <p className="form-error" role="alert">質問が見つかりません。選び直してください。</p> : null}
+            <div className="compare-scope__actions">
+              {available.length > 0 ? (
+                <details className="compare-picker">
+                  <summary ref={pickerSummaryRef}>
+                    <span>回答を選ぶ</span><span>{comparison.runs.length} / 3</span>
+                  </summary>
+                  <fieldset>
+                    <legend>比較する回答（最大3件）</legend>
+                    <p className="section-note">入れ替えるときは、選択中の回答を外してください。</p>
+                    <div className="compare-picker__options">
+                      {available.map((run) => (
+                        <label key={run.id} className={`compare-picker__option ${selectedIds.includes(run.id) ? 'is-selected' : ''}`}>
+                          <input type="checkbox" checked={selectedIds.includes(run.id)} disabled={!selectedIds.includes(run.id) && selectedIds.length >= 3} onChange={() => changeSelection(run.id)} />
+                          <span><strong>{providerLabels[run.provider]}</strong><small>{run.model} · {dateLabel(run.executedAt)} · {originLabels[run.provenance.origin]}</small></span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                </details>
+              ) : null}
+              <Link className="text-link compare-add" to="/observe?tab=runs">回答を追加<ArrowRight size={14} aria-hidden="true" /></Link>
+            </div>
           </section>
-
           {available.length > 0 ? (
             <>
-              <details className="compare-picker">
-                <summary>
-                  <span>比較する回答を選ぶ</span>
-                  <span>{comparison.runs.length} / 3件</span>
-                </summary>
-                <fieldset>
-                  <legend>比較する回答（最大3件）</legend>
-                  <p className="section-note">
-                    最大3件。入れ替えるときは、選択中の回答を1件外してください。
-                  </p>
-                  <div className="compare-picker__options">
-                    {available.map((run) => (
-                      <label
-                        key={run.id}
-                        className={`compare-picker__option ${selectedIds.includes(run.id) ? 'is-selected' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(run.id)}
-                          disabled={
-                            !selectedIds.includes(run.id) &&
-                            selectedIds.length >= 3
-                          }
-                          onChange={() => changeSelection(run.id)}
-                        />
-                        <span>
-                          <strong>{providerLabels[run.provider]}</strong>
-                          <small>
-                            {run.model} · {dateLabel(run.executedAt)} ·{' '}
-                            {originLabels[run.provenance.origin]}
-                          </small>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              </details>
-
               {comparison.runs.length ? (
                 <>
-                  {rows.length ? (
-                    <a
-                      className="compare-jump text-link"
-                      href="#comparison-items"
-                    >
-                      項目の比較へ
-                      <ArrowRight size={14} aria-hidden="true" />
-                    </a>
-                  ) : null}
-                  <div className="compare-boundary">
-                    <p>
-                      保存された判定を表示しています。新しい自動検証は行っていません。
-                    </p>
-                    <Link
-                      className="text-link"
-                      to="/help#judgments"
-                      state={helpState}
-                    >
-                      判定について
-                    </Link>
-                  </div>
-                  {conditionsDiffer ? (
-                    <p className="compare-caution">
-                      質問・言語・検索条件に違いがあります。各回答の「質問・取得条件」で確認できます。
-                    </p>
-                  ) : null}
-                  <section
-                    className="compare-answers"
-                    style={
-                      {
-                        '--compare-columns': comparison.runs.length,
-                      } as CSSProperties
-                    }
-                    aria-label="選択した回答"
-                  >
-                    {comparison.runs.map(
-                      ({
-                        run,
-                        question,
-                        definitionOrigin,
-                        conditionLabels,
-                        issues,
-                      }) => (
+                  {conditionsDiffer ? <p className="compare-caution">質問・言語・検索条件が異なります。</p> : null}
+                  <div className="compare-board">
+                    <section id="comparison-answers" className="compare-answers" style={{ '--compare-columns': comparison.runs.length } as CSSProperties} aria-label="選択した回答">
+                      <div className="compare-axis">確認項目</div>
+                      {comparison.runs.map(({ run, question, definitionOrigin, conditionLabels, issues }) => (
                         <article className="compare-answer" key={run.id}>
                           <header>
-                            <div>
-                              <h3>{providerLabels[run.provider]}</h3>
-                              <span>{run.model}</span>
-                            </div>
-                            <Badge
-                              tone={
-                                run.provenance.origin === 'demo'
-                                  ? 'info'
-                                  : 'neutral'
-                              }
-                            >
-                              {originLabels[run.provenance.origin]}
-                            </Badge>
+                            <h3><span className={`provider-dot provider-dot--${run.provider}`} aria-hidden="true" />{providerLabels[run.provider]}</h3>
+                            <button className="icon-button compare-remove" type="button" aria-label={`${providerLabels[run.provider]} ${run.model} ${dateLabel(run.executedAt)}を比較から外す`} onClick={() => { changeSelection(run.id); pickerSummaryRef.current?.focus(); }}><X size={15} aria-hidden="true" /></button>
                           </header>
-                          <footer>
-                            <time dateTime={run.executedAt}>
-                              {dateLabel(run.executedAt)}
-                            </time>
-                            <button
-                              type="button"
-                              className="text-link"
-                              onClick={() => setFullRunId(run.id)}
-                              aria-label={`${providerLabels[run.provider]}の回答全文・実行条件`}
-                            >
-                              回答全文
-                              <ArrowRight size={14} aria-hidden="true" />
-                            </button>
-                          </footer>
-                          {issues.length ? (
-                            <p className="compare-caution compare-answer__warning">
-                              この回答の記録に確認事項あり
-                            </p>
-                          ) : null}
-                          <div className="compare-answer__metadata">
-                            <span className="compare-answer__conditions">
-                              {run.locale} · 検索
-                              {run.searchEnabled ? 'あり' : 'なし'}
-                            </span>
+                          {answerIdentity(run) ? <small className="compare-answer__identity">{answerIdentity(run)}</small> : null}
+                          <div className="compare-answer__actions">
+                            <button type="button" className="text-link" onClick={() => setFullRunId(run.id)} aria-label={`${providerLabels[run.provider]}の回答全文・実行条件`}>全文<ArrowRight size={14} aria-hidden="true" /></button>
                             <details className="compare-condition-details">
-                              <summary>質問・取得条件</summary>
+                              <summary>{issues.length ? '条件・要確認' : '条件'}</summary>
+                              <p>{run.model}</p>
+                              <time dateTime={run.executedAt}>{dateLabel(run.executedAt)}</time>
+                              <small>{originLabels[run.provenance.origin]} · {run.locale} · 検索{run.searchEnabled ? 'あり' : 'なし'}</small>
                               <p>{question}</p>
-                              <small>
-                                {definitionOrigin === 'captured'
-                                  ? '回答と一緒に保存した質問'
-                                  : '当時の質問は未保存。現在の質問を参照しています。'}
-                              </small>
-                              {conditionLabels.map((label, i) => (
-                                <small key={`${label}-${i}`}>{label}</small>
-                              ))}
-                              <small>
-                                {comparison.probe?.audience} ·{' '}
-                                {comparison.probe?.intent}
-                              </small>
-                              {issues.map((issue, i) => (
-                                <small key={`issue-${i}`}>{issue}</small>
-                              ))}
+                              <small>{definitionOrigin === 'captured' ? '回答と一緒に保存した質問' : '当時の質問は未保存。現在の質問を参照しています。'}</small>
+                              {conditionLabels.filter((label) => label !== run.model && label !== providerLabels[run.provider]).map((label, i) => <small key={`${label}-${i}`}>{label}</small>)}
+                              {issues.map((issue, i) => <small key={`issue-${i}`}>{issue}</small>)}
                             </details>
                           </div>
+                          {showAnswerOrigins ? <span className="compare-answer__origin">{originLabels[run.provenance.origin]}</span> : null}
                         </article>
-                      ),
-                    )}
-                  </section>
-                  <section
-                    className="compare-findings"
-                    id="comparison-items"
-                    tabIndex={-1}
-                    aria-label="確認項目ごとの比較"
-                  >
-                    <div className="compare-section-heading">
-                      <div>
-                        <h2>項目ごとの比較</h2>
-                        <span role="status">
-                          {rows.length} / {comparison.rows.length}項目
-                        </span>
+                      ))}
+                    </section>
+                    <section className="compare-findings" id="comparison-items" tabIndex={-1} aria-label="確認項目ごとの比較">
+                      <div className="compare-section-heading">
+                        <Link className="text-link" to="/help#judgments" state={helpState} aria-label="判定について">保存判定<CircleHelp size={14} aria-hidden="true" /></Link>
+                        <div>
+                          <span role="status">{rows.length} / {comparison.rows.length}項目</span>
+                          <button type="button" className={`button button--secondary button--compact ${attentionOnly ? 'is-filtered' : ''}`} aria-label="要確認の項目だけ" aria-pressed={attentionOnly} onClick={() => setAttentionOnly(!attentionOnly)}><Filter size={14} aria-hidden="true" />要確認だけ</button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        className={`button button--secondary button--compact ${attentionOnly ? 'is-filtered' : ''}`}
-                        aria-pressed={attentionOnly}
-                        onClick={() => setAttentionOnly(!attentionOnly)}
-                      >
-                        <Filter size={14} aria-hidden="true" />
-                        要確認の項目だけ
-                      </button>
-                    </div>
                     {rows.length ? (
-                      rows.map((row, index) => (
+                      rows.map((row) => (
                         <article className="compare-fact" key={row.claimId}>
                           <header>
-                            <span className="compare-fact__number">
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
                             <div>
+                              <span className="compare-fact__number">
+                                {String(comparison.rows.indexOf(row) + 1).padStart(2, '0')}
+                              </span>
                               <h3>{row.statement}</h3>
                               {row.definitionsDiffer ? (
                                 <p className="compare-caution">
@@ -467,8 +333,8 @@ function ComparisonWorkspace() {
                                   aria-label={`${providerLabels[run.provider]}の保存判定`}
                                 >
                                   <span className="compare-cell__provider">
-                                    {providerLabels[run.provider]} ·{' '}
-                                    {dateLabel(run.executedAt)}
+                                    {providerLabels[run.provider]}
+                                    {answerIdentity(run) ? <small>{answerIdentity(run)}</small> : null}
                                   </span>
                                   {saved ? (
                                     <>
@@ -486,12 +352,9 @@ function ComparisonWorkspace() {
                                               : 'warning'
                                           }
                                         >
-                                          保存判定：
                                           {factualityLabels[saved.factuality]}
                                         </Badge>
-                                        <span>
-                                          {visibilityLabels[saved.visibility]}
-                                        </span>
+                                        {saved.visibility !== 'mentioned' ? <span>{visibilityLabels[saved.visibility]}</span> : null}
                                       </div>
                                       {row.definitionsDiffer &&
                                       cell.statement ? (
@@ -504,7 +367,7 @@ function ComparisonWorkspace() {
                                       ) : null}
                                       <blockquote>
                                         {saved.observedExcerpt?.trim() ||
-                                          '回答中の抜粋は保存されていません。'}
+                                          '抜粋なし'}
                                       </blockquote>
                                       <div className="compare-cell__meta">
                                         {[
@@ -520,9 +383,7 @@ function ComparisonWorkspace() {
                                             }
                                           </span>
                                         ) : null}
-                                        <span>
-                                          根拠：{evidenceLabels[saved.evidence]}
-                                        </span>
+
                                       </div>
                                     </>
                                   ) : (
@@ -544,7 +405,7 @@ function ComparisonWorkspace() {
                                     <FileSearch size={16} aria-hidden="true" />
                                     <span>
                                       根拠を確認
-                                      <small>{cell.source.label}</small>
+                                      <small>{cell.source.status === 'changed' || cell.source.status === 'missing' ? '当時の原文なし' : cell.source.status === 'captured-history' ? '旧版' : cell.source.status === 'current-reference' ? '当時の版なし' : saved ? evidenceLabels[saved.evidence] : ''}</small>
                                     </span>
                                     <ArrowRight size={15} aria-hidden="true" />
                                   </button>
@@ -569,6 +430,7 @@ function ComparisonWorkspace() {
                       />
                     )}
                   </section>
+                  </div>
                   {comparison.notices.length > 0 ? (
                     <details className="compare-notices">
                       <summary>
@@ -583,7 +445,7 @@ function ComparisonWorkspace() {
               ) : (
                 <EmptyState
                   title="比較する回答を選んでください"
-                  description="上の「比較する回答を選ぶ」から、最大3件を選択できます。"
+                  description="「回答を選ぶ」から追加できます。"
                 />
               )}
             </>
@@ -591,10 +453,10 @@ function ComparisonWorkspace() {
             <EmptyState
               icon={<FileSearch size={26} aria-hidden="true" />}
               title="この質問への回答を集めましょう"
-              description="観測を開始するか、既存のAI回答を取り込むと、ここで根拠と一緒に比較できます。"
+              description="保存した回答を追加してください。"
               action={
                 <Link className="button button--primary" to="/observe">
-                  観測へ
+                  回答を追加
                   <ArrowRight size={16} aria-hidden="true" />
                 </Link>
               }

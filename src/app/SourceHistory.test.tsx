@@ -90,8 +90,14 @@ describe('source revision workflow', () => {
     expect(saved().sources[0]!.snapshot).toEqual(source.snapshot);
   });
 
-  it('distinguishes a search with no matches from a workspace with no sources', async () => {
+  it('starts with saved sources and supports a claim search with no matches', async () => {
     renderApp('/sources');
+    expect(await screen.findByRole('tab', { name: /^資料/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tab')[0]).toHaveTextContent(/^資料/);
+    expect(screen.getByRole('heading', { name: source.title })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /原文と版履歴：/ })).toHaveLength(fixture.sources.length);
+    expect(screen.queryByRole('button', { name: /原文を確認：/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /確認項目/ }));
     fireEvent.change(screen.getByRole('textbox', { name: '公式情報を検索' }), { target: { value: 'zzzz-not-a-source' } });
     expect(screen.getByText('一致する項目がありません')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '検索を解除' }));
@@ -102,11 +108,17 @@ describe('source revision workflow', () => {
     renderApp('/sources?source=missing-source');
     expect(screen.getByRole('alert')).toHaveTextContent('指定した資料がありません');
     fireEvent.click(screen.getByRole('button', { name: '一覧へ戻る' }));
+    const sources = screen.getByRole('tab', { name: /^資料/ });
     const claims = screen.getByRole('tab', { name: /確認項目/ });
-    fireEvent.keyDown(claims, { key: 'ArrowRight' });
-    expect(screen.getByRole('tab', { name: /^資料/ })).toHaveFocus();
-    expect(screen.getByRole('tab', { name: /^資料/ })).toHaveAttribute('aria-selected', 'true');
-    fireEvent.keyDown(screen.getByRole('tab', { name: /^資料/ }), { key: 'Home' });
+    fireEvent.keyDown(sources, { key: 'ArrowRight' });
     expect(claims).toHaveFocus();
+    expect(claims).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(claims, { key: 'Home' });
+    expect(sources).toHaveFocus();
+    expect(sources).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(sources, { key: 'End' });
+    expect(claims).toHaveFocus();
+    fireEvent.keyDown(claims, { key: 'ArrowLeft' });
+    expect(sources).toHaveFocus();
   });
 });

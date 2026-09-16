@@ -8,7 +8,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from './App';
 import { WorkspaceProvider } from './WorkspaceProvider';
@@ -120,13 +120,25 @@ async function answerRegion() {
 }
 
 function openPicker() {
-  fireEvent.click(screen.getByText('比較する回答を選ぶ'));
+  fireEvent.click(screen.getByText('回答を選ぶ'));
   return screen.getByRole('group', { name: '比較する回答（最大3件）' });
+}
+
+function openQuestionPicker() {
+  const select = screen.getByLabelText('比較する質問');
+  const details = select.closest('details')!;
+  const summary = details.querySelector('summary')!;
+  fireEvent.click(summary);
+  expect(details).toHaveAttribute('open');
+  return { select: screen.getByRole('combobox', { name: '比較する質問' }), details, summary };
 }
 
 describe('Compare Lab interactions', () => {
   beforeEach(() => localStorage.clear());
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   it('starts with three distinct AI answers and clearly identifies stored judgments', async () => {
     const { snapshot } = fixture();
@@ -142,11 +154,8 @@ describe('Compare Lab interactions', () => {
     expect(
       within(answers).queryByRole('heading', { name: 'Claude' }),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByText('保存判定：一部正確').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('保存判定：正確').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/新しい自動検証は行っていません/),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText('一部正確').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('正確').length).toBeGreaterThan(0);
     expect(
       within(answers).queryByText(snapshot.runs[0]!.answer),
     ).not.toBeInTheDocument();
@@ -158,18 +167,19 @@ describe('Compare Lab interactions', () => {
       'href',
       '/help#judgments',
     );
+    expect(screen.getByRole('link', { name: '判定について' })).toHaveTextContent('保存判定');
   });
 
   it('keeps differences and evidence visible while revealing detailed rationale on request', async () => {
     const { snapshot, claim, run } = fixture();
     seed(snapshot);
     renderComparison();
-    const answers = await answerRegion();
-    expect(within(answers).getAllByText('架空デモ')).toHaveLength(3);
+    await answerRegion();
+    expect(screen.getByText('架空デモ')).toBeVisible();
     expect(
       screen.queryByText(run.assessments[0]!.rationale),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByText('根拠：URLのみ').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('URLのみ').length).toBeGreaterThan(0);
     fireEvent.click(
       screen.getByRole('button', {
         name: `ChatGPTの根拠を確認：${claim.statement}`,
@@ -191,9 +201,22 @@ describe('Compare Lab interactions', () => {
     renderComparison();
     await answerRegion();
     expect(
-      screen.getByText(/質問・言語・検索条件に違いがあります/),
+      screen.getByText('質問・言語・検索条件が異なります。'),
     ).toBeVisible();
-    expect(screen.getByText('この回答の記録に確認事項あり')).toBeVisible();
+    expect(screen.getByText('条件・要確認')).toBeVisible();
+  });
+
+  it('labels each answer when demo and imported provenance are mixed', async () => {
+    const { snapshot } = fixture();
+    snapshot.runs[1]!.provenance.origin = 'manual';
+    seed(snapshot);
+    renderComparison();
+    const answers = await answerRegion();
+    for (const [provider, origin] of [['ChatGPT', '架空デモ'], ['Gemini', '持ち込み'], ['Perplexity', '架空デモ']] as const) {
+      const article = within(answers).getByRole('heading', { name: provider }).closest('article')!;
+      expect(within(article).getByText(origin)).toBeVisible();
+      expect(within(article).getByText('条件', { selector: 'summary' }).closest('details')).not.toHaveAttribute('open');
+    }
   });
 
   it('opens the complete answer from its compact column header and returns focus on close', async () => {
@@ -214,7 +237,60 @@ describe('Compare Lab interactions', () => {
     expect(trigger).toHaveFocus();
   });
 
-  it('shows the filter result count and restores all items without changing the selected answers', async () => {
+  it('keeps compact answer controls and warnings visible while collapsing acquisition details', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 900px)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    const { snapshot, probe, claim, run } = fixture();
+    run.inputSnapshot!.observation.question = '取得時の質問は現在と異なります。';
+    seed(snapshot);
+    renderComparison();
+
+    const answers = await answerRegion();
+    expect(answers).toBeVisible();
+    const chatgpt = within(answers).getByRole('heading', { name: 'ChatGPT' }).closest('article')!;
+    const conditions = within(chatgpt).getByText('条件・要確認');
+    expect(conditions).toBeVisible();
+    expect(conditions.closest('details')).not.toHaveAttribute('open');
+    expect(within(chatgpt).getByText(run.model, { selector: 'p' })).not.toBeVisible();
+    const comparisons = screen.getByRole('region', { name: '確認項目ごとの比較' });
+    expect(within(comparisons).getAllByRole('article')).toHaveLength(probe.targetClaimIds.length);
+    expect(within(comparisons).getByRole('button', {
+      name: `ChatGPTの根拠を確認：${claim.statement}`,
+    })).toBeVisible();
+    expect(screen.getByText('架空デモ')).toBeVisible();
+    expect(screen.getByText('質問・言語・検索条件が異なります。')).toBeVisible();
+
+    const fullAnswer = within(answers).getByRole('button', {
+      name: 'ChatGPTの回答全文・実行条件',
+    });
+    expect(fullAnswer).toBeVisible();
+    fullAnswer.focus();
+    fireEvent.click(fullAnswer);
+    const dialog = screen.getByRole('dialog', { name: '観測結果の証拠' });
+    expect(within(dialog).getAllByText(run.answer).length).toBeGreaterThan(0);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fullAnswer).toHaveFocus();
+    expect(conditions.closest('details')).not.toHaveAttribute('open');
+
+    fireEvent.click(conditions);
+    expect(conditions.closest('details')).toHaveAttribute('open');
+    expect(within(chatgpt).getByText(run.model, { selector: 'p' })).toBeVisible();
+    expect(within(chatgpt).getByText(run.inputSnapshot!.observation.question)).toBeVisible();
+    expect(within(chatgpt).getByText(/架空デモ · ja-JP/)).toBeVisible();
+    fireEvent.click(conditions);
+    expect(within(chatgpt).getByText(run.model, { selector: 'p' })).not.toBeVisible();
+    expect(fullAnswer).toBeVisible();
+    expect(comparisons).toBeVisible();
+  });
+
+  it('keeps item numbers stable while filtering and restores all items without changing the selected answers', async () => {
     const { snapshot, probe } = fixture();
     for (const run of snapshot.runs) {
       for (const assessment of run.assessments) {
@@ -222,7 +298,10 @@ describe('Compare Lab interactions', () => {
         assessment.evidence = 'human-verified';
       }
     }
-    snapshot.runs[0]!.assessments[0]!.factuality = 'partial';
+    snapshot.runs[0]!.assessments[1]!.factuality = 'partial';
+    const attentionClaim = snapshot.claims.find(
+      (claim) => claim.id === probe.targetClaimIds[1],
+    )!;
     seed(snapshot);
     renderComparison();
     await answerRegion();
@@ -232,9 +311,16 @@ describe('Compare Lab interactions', () => {
     const filter = within(comparisons).getByRole('button', {
       name: '要確認の項目だけ',
     });
+    expect(within(comparisons).getByText('01')).toBeInTheDocument();
+    expect(within(comparisons).getByText('02')).toBeInTheDocument();
     fireEvent.click(filter);
     expect(filter).toHaveAttribute('aria-pressed', 'true');
     expect(within(comparisons).getAllByRole('article')).toHaveLength(1);
+    expect(within(comparisons).queryByText('01')).not.toBeInTheDocument();
+    expect(within(comparisons).getByText('02')).toBeInTheDocument();
+    expect(
+      within(comparisons).getByRole('heading', { name: attentionClaim.statement }),
+    ).toBeInTheDocument();
     expect(within(comparisons).getByRole('status')).toHaveTextContent(
       `1 / ${probe.targetClaimIds.length}項目`,
     );
@@ -246,9 +332,83 @@ describe('Compare Lab interactions', () => {
       probe.targetClaimIds.length,
     );
     expect(filter).toHaveAttribute('aria-pressed', 'false');
+    expect(within(comparisons).getByText('01')).toBeInTheDocument();
+    expect(within(comparisons).getByText('02')).toBeInTheDocument();
   });
 
-  it('provides a query-preserving item anchor only while there are comparison rows', async () => {
+  it('removes a selected answer without opening the picker, restores focus, and permits replacement', async () => {
+    const { snapshot, run } = fixture();
+    seed(snapshot);
+    renderComparison();
+    const answers = await answerRegion();
+    const summary = screen.getByText('回答を選ぶ').closest('summary')!;
+    expect(summary.closest('details')).not.toHaveAttribute('open');
+    const remove = within(answers).getByRole('button', {
+      name: /^ChatGPT chatgpt-test-model .*を比較から外す$/,
+    });
+    const timestamp = within(answers).getByText(
+      (_, element) =>
+        element?.tagName === 'TIME' &&
+        element.getAttribute('datetime') === run.executedAt,
+    ).textContent;
+    expect(remove).toBeVisible();
+    expect(remove).toHaveAccessibleName(
+      `ChatGPT ${run.model} ${timestamp}を比較から外す`,
+    );
+    remove.focus();
+    fireEvent.click(remove);
+
+    expect(summary).toHaveFocus();
+    expect(summary.closest('details')).not.toHaveAttribute('open');
+    expect(within(answers).getAllByRole('button', { name: /を比較から外す$/ })).toHaveLength(2);
+    expect(within(await answerRegion()).getAllByRole('article')).toHaveLength(2);
+    expect(
+      within(await answerRegion()).queryByRole('heading', { name: 'ChatGPT' }),
+    ).not.toBeInTheDocument();
+
+    const picker = openPicker();
+    const claude = within(picker).getByRole('checkbox', { name: /Claude/ });
+    expect(claude).toBeEnabled();
+    fireEvent.click(claude);
+    expect(within(await answerRegion()).getAllByRole('article')).toHaveLength(3);
+    expect(within(await answerRegion()).getByRole('heading', { name: 'Claude' })).toBeInTheDocument();
+    expect(within(picker).getByRole('checkbox', { name: /ChatGPT/ })).toBeDisabled();
+  });
+
+  it('can remove every selected answer and recover from the empty selection with the picker', async () => {
+    const { snapshot } = fixture();
+    seed(snapshot);
+    renderComparison();
+    const selection = await answerRegion();
+    const summary = screen.getByText('回答を選ぶ').closest('summary')!;
+
+    for (const remove of within(selection).getAllByRole('button', { name: /を比較から外す$/ })) {
+      remove.focus();
+      fireEvent.click(remove);
+      expect(summary).toHaveFocus();
+    }
+
+    expect(screen.getByText('比較する回答を選んでください')).toBeInTheDocument();
+    expect(summary).toHaveTextContent('0 / 3');
+    expect(screen.queryByRole('region', { name: '選択した回答' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '確認項目ごとの比較' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '項目の比較へ' })).not.toBeInTheDocument();
+
+    const picker = openPicker();
+    for (const checkbox of within(picker).getAllByRole('checkbox')) {
+      expect(checkbox).not.toBeChecked();
+      expect(checkbox).toBeEnabled();
+    }
+    fireEvent.click(within(picker).getByRole('checkbox', { name: /Gemini/ }));
+    const answers = await answerRegion();
+    expect(within(answers).getAllByRole('article')).toHaveLength(1);
+    expect(within(answers).getByRole('heading', { name: 'Gemini' })).toBeInTheDocument();
+    expect(screen.queryByText('比較する回答を選んでください')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '確認項目ごとの比較' })).toBeInTheDocument();
+    expect(summary).toHaveTextContent('1 / 3');
+  });
+
+  it('keeps the explicit answer selection when the attention filter has no matching items', async () => {
     const { snapshot, probe, run } = fixture();
     for (const assessment of run.assessments) {
       assessment.factuality = 'accurate';
@@ -257,20 +417,19 @@ describe('Compare Lab interactions', () => {
     seed(snapshot);
     renderComparison(`/?probe=${probe.id}&selection=custom&run=${run.id}`);
     await answerRegion();
-    const jump = screen.getByRole('link', { name: '項目の比較へ' });
-    expect(jump).toHaveAttribute('href', '#comparison-items');
     const target = screen.getByRole('region', { name: '確認項目ごとの比較' });
     expect(target).toHaveAttribute('id', 'comparison-items');
     expect(target).toHaveAttribute('tabindex', '-1');
     fireEvent.click(
       within(target).getByRole('button', { name: '要確認の項目だけ' }),
     );
-    expect(
-      screen.queryByRole('link', { name: '項目の比較へ' }),
-    ).not.toBeInTheDocument();
+    expect(within(target).getByText('要確認の項目はありません')).toBeVisible();
     expect(within(await answerRegion()).getAllByRole('article')).toHaveLength(
       1,
     );
+    expect(within(await answerRegion()).getByRole('heading', { name: 'ChatGPT' })).toBeVisible();
+    fireEvent.click(within(target).getByRole('button', { name: '要確認の項目だけ' }));
+    expect(within(target).getAllByRole('article')).toHaveLength(probe.targetClaimIds.length);
   });
 
   it('limits selection to three, permits replacement, and resets it when the question changes', async () => {
@@ -293,14 +452,64 @@ describe('Compare Lab interactions', () => {
     ).not.toBeInTheDocument();
     expect(chatgpt).toBeDisabled();
 
-    fireEvent.change(screen.getByRole('combobox', { name: '比較する質問' }), {
+    const { select, details, summary } = openQuestionPicker();
+    select.focus();
+    fireEvent.change(select, {
       target: { value: nextProbe.id },
     });
+    expect(details).toHaveAttribute('open');
+    expect(select).toHaveFocus();
+    expect(summary).toHaveTextContent(nextProbe.question);
+    expect(screen.getByLabelText('比較する質問')).toHaveValue(nextProbe.id);
     const nextAnswers = await answerRegion();
     expect(within(nextAnswers).getAllByRole('article')).toHaveLength(1);
     expect(
       within(nextAnswers).getByRole('heading', { name: 'Claude' }),
     ).toBeInTheDocument();
+  });
+
+  it('identifies repeated providers by model and time and allows up to three runs from the same provider', async () => {
+    const { snapshot, probe, run } = fixture();
+    const second = {
+      ...structuredClone(run),
+      id: `${run.id}-second`,
+      model: 'chatgpt-second-model',
+      executedAt: '2026-09-05T01:00:00.000Z',
+    };
+    const third = {
+      ...structuredClone(run),
+      id: `${run.id}-third`,
+      executedAt: '2026-09-06T01:00:00.000Z',
+    };
+    snapshot.runs.push(second, third);
+    seed(snapshot);
+    renderComparison(`/?probe=${probe.id}&selection=custom&run=${run.id}&run=${second.id}`);
+    const answers = await answerRegion();
+    expect(within(answers).getAllByRole('heading', { name: 'ChatGPT' })).toHaveLength(2);
+
+    const assertIdentity = (article: HTMLElement, item: ProbeRun) => {
+      const time = within(article).getByText(
+        (_, element) => element?.tagName === 'TIME' && element.getAttribute('datetime') === item.executedAt,
+      );
+      expect(within(article).getByText(`${item.model} · ${time.textContent}`, { exact: false })).toBeVisible();
+      expect(within(article).getByText('条件', { selector: 'summary' }).closest('details')).not.toHaveAttribute('open');
+    };
+    within(answers).getAllByRole('article').forEach((article, index) => {
+      assertIdentity(article, [run, second][index]!);
+    });
+
+    const picker = openPicker();
+    const thirdChoice = within(picker).getAllByRole('checkbox', { name: /ChatGPT/ }).find((checkbox) =>
+      !(checkbox as HTMLInputElement).checked,
+    )!;
+    expect(thirdChoice).toBeEnabled();
+    fireEvent.click(thirdChoice);
+    const selected = within(await answerRegion()).getAllByRole('article');
+    expect(selected).toHaveLength(3);
+    selected.forEach((article, index) => assertIdentity(article, [run, second, third][index]!));
+    expect(within(picker).getByRole('checkbox', { name: /Gemini/ })).toBeDisabled();
+    expect(within(picker).getByRole('checkbox', { name: /Perplexity/ })).toBeDisabled();
+    expect(within(picker).getByRole('checkbox', { name: /Claude/ })).toBeDisabled();
   });
 
   it.each(['比較の使い方', '判定について'])(
@@ -325,7 +534,7 @@ describe('Compare Lab interactions', () => {
           .map((item) => item.textContent),
       ).toEqual(['Claude', 'ChatGPT']);
       expect(
-        screen.getByRole('combobox', { name: '比較する質問' }),
+        screen.getByLabelText('比較する質問'),
       ).toHaveValue(probe.id);
     },
   );
@@ -377,7 +586,7 @@ describe('Compare Lab interactions', () => {
     seed(snapshot);
     renderComparison(`/?probe=${probe.id}&run=${run.id}`);
     const answers = await answerRegion();
-    fireEvent.click(within(answers).getByText('質問・取得条件'));
+    fireEvent.click(within(answers).getByText('条件・要確認'));
     expect(within(answers).getByText(oldQuestion)).toBeInTheDocument();
     expect(
       within(answers).getByText('回答と一緒に保存した質問'),
@@ -406,7 +615,7 @@ describe('Compare Lab interactions', () => {
     seed(snapshot);
     renderComparison(`/?probe=${probe.id}&run=${run.id}`);
     const answers = await answerRegion();
-    fireEvent.click(within(answers).getByText('質問・取得条件'));
+    fireEvent.click(within(answers).getByText('条件', { selector: 'summary' }));
     expect(
       within(answers).getByText(
         '当時の質問は未保存。現在の質問を参照しています。',
@@ -500,12 +709,13 @@ describe('Compare Lab interactions', () => {
     seed(snapshot);
     renderComparison('/?probe=no-such-probe');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'このWorkspaceに対応する質問がありません。',
+      '質問が見つかりません。選び直してください。',
     );
     expect(
       screen.queryByRole('region', { name: '選択した回答' }),
     ).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: '比較する質問' }), {
+    const { select } = openQuestionPicker();
+    fireEvent.change(select, {
       target: { value: nextProbe.id },
     });
     expect(
@@ -526,7 +736,7 @@ describe('Compare Lab interactions', () => {
     seed(snapshot);
     renderComparison();
     expect(
-      await screen.findByText('最初の比較を始めましょう'),
+      await screen.findByText('質問がありません'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /調査の準備へ/ })).toHaveAttribute(
       'href',

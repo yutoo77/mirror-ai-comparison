@@ -77,9 +77,10 @@ describe('task-oriented help', () => {
         </WorkspaceProvider>
       </MemoryRouter>,
     );
-    fireEvent.click(
-      await screen.findByRole('link', { name: '使い方と判定について' }),
-    );
+    const help = await screen.findByRole('link', { name: '使い方と判定について' });
+    expect(help).toHaveTextContent(/^使い方$/);
+    expect(help).toBeVisible();
+    fireEvent.click(help);
     expect(
       await screen.findByRole('heading', {
         level: 1,
@@ -90,7 +91,7 @@ describe('task-oriented help', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: /のAI認識を比べる/,
+        name: 'AIの回答を比較',
       }),
     ).toBeInTheDocument();
   });

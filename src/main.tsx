@@ -10,6 +10,7 @@ import './styles/experiments.css';
 import './styles/compare.css';
 import './styles/help.css';
 import './styles/sources.css';
+import './styles/observe.css';
 
 const root = document.getElementById('root');
 

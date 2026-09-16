@@ -47,17 +47,17 @@ export function PageIntro({
   description,
   actions,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   actions?: ReactNode;
 }) {
   return (
-    <header className="page-intro">
+    <header className={`page-intro ${!eyebrow && !description ? 'page-intro--compact' : ''}`}>
       <div>
-        <span className="eyebrow">{eyebrow}</span>
+        {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
         <h1>{title}</h1>
-        <p>{description}</p>
+        {description ? <p>{description}</p> : null}
       </div>
       {actions ? <div className="page-intro__actions">{actions}</div> : null}
     </header>
@@ -73,7 +73,7 @@ export function MetricCard({
 }: {
   label: string;
   value: string;
-  detail: string;
+  detail?: string;
   trend?: number;
   tone?: 'default' | 'accent';
 }) {
@@ -90,7 +90,7 @@ export function MetricCard({
           </span>
         ) : null}
       </div>
-      <p>{detail}</p>
+      {detail ? <p>{detail}</p> : null}
     </article>
   );
 }
