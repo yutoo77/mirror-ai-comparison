@@ -35,11 +35,14 @@ describe('Mirror application shell', () => {
 
   it('switches workspace without company-specific routing', async () => {
     renderApp();
-    const picker = await screen.findByRole('combobox', { name: 'Workspace' });
+    const picker = await screen.findByRole('combobox', { name: '調査対象' });
 
     fireEvent.change(picker, { target: { value: 'workspace-morrow' } });
 
-    expect(await screen.findByText('Morrow MobilityのAI認識を比べる', { selector: 'h1' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'AIの回答を比較' })).toBeInTheDocument();
+    expect(screen.getByText(/Morrow Mobility · 最終観測/)).toBeInTheDocument();
+    expect(picker).toHaveValue('workspace-morrow');
+    expect(screen.getByRole('combobox', { name: '比較する質問' })).toHaveValue('morrow-p1');
   });
 
   it('labels sample restoration separately from user data deletion', async () => {
@@ -66,7 +69,7 @@ describe('Mirror application shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '次へ' }));
     fireEvent.click(screen.getByRole('button', { name: 'Workspaceを作成' }));
 
-    const picker = await screen.findByRole('combobox', { name: 'Workspace' });
+    const picker = await screen.findByRole('combobox', { name: '調査対象' });
     expect(screen.getByRole('option', { name: 'Northstar Studio' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'デモデータを復元' }));
 

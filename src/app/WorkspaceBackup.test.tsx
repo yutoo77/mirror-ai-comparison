@@ -103,7 +103,7 @@ describe('workspace backup and storage protection', () => {
     renderApp();
     expect(stored().workspaces).toHaveLength(3);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: '調査対象' }), {
       target: { value: state.activeWorkspaceId },
     });
     expect(stored().activeWorkspaceId).toBe(state.activeWorkspaceId);

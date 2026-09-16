@@ -48,7 +48,7 @@ const navigation = [
   },
   {
     to: '/findings',
-    label: 'Findings',
+    label: '発見',
     shortLabel: '発見',
     icon: CircleDot,
     end: false,
@@ -73,7 +73,7 @@ const pageNames: Record<string, string> = {
   '/': '比較ラボ',
   '/overview': '全体の指標',
   '/observe': '観測',
-  '/findings': 'Findings',
+  '/findings': '発見',
   '/actions': '改善',
   '/sources': '公式情報',
   '/help': '使い方',
@@ -132,7 +132,7 @@ export function AppShell() {
           </span>
           <div>
             <strong>Mirror</strong>
-            <small>AI認識の比較ラボ</small>
+              <small>回答と根拠を見比べる</small>
           </div>
           <button
             className="icon-button mobile-menu-close"
@@ -145,7 +145,7 @@ export function AppShell() {
         </div>
 
         <div className="workspace-picker">
-          <label htmlFor="workspace-select">Workspace</label>
+          <label htmlFor="workspace-select">調査対象</label>
           <div className="workspace-picker__control">
             <span className="workspace-avatar" aria-hidden="true">
               {active.workspace.subject.displayName.slice(0, 1).toUpperCase()}
@@ -192,7 +192,7 @@ export function AppShell() {
             >
               <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
               <span>{label}</span>
-              {label === 'Findings' &&
+              {to === '/findings' &&
               active.findings.filter((item) => item.status === 'open').length >
                 0 ? (
                 <span
@@ -287,10 +287,10 @@ export function AppShell() {
           </div>
           <div className="topbar__actions">
             {active.workspace.isDemo ? (
-              <span className="demo-label">DEMO</span>
+              <span className="demo-label">デモ</span>
             ) : null}
             <button
-              className="button button--primary button--compact"
+              className="button button--secondary button--compact"
               type="button"
               onClick={() => setRunOpen(true)}
               disabled={

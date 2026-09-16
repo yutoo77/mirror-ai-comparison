@@ -90,7 +90,7 @@ describe('task-oriented help', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: /のAI認識を比べる/,
+        name: 'AIの回答を比較',
       }),
     ).toBeInTheDocument();
   });
