@@ -91,8 +91,9 @@ describe('workspace backup and storage protection', () => {
     expect(
       await screen.findByText('別のWorkspaceとして復元コピーを追加しました。'),
     ).toBeInTheDocument();
+    // The success message can render before the provider's persistence effect runs.
+    await waitFor(() => expect(stored().workspaces).toHaveLength(3));
     const state = stored();
-    expect(state.workspaces).toHaveLength(3);
     expect(state.workspaces.slice(0, 2)).toEqual(before);
     expect(state.activeWorkspaceId).not.toBe(backup.snapshot.workspace.id);
     fireEvent.click(
